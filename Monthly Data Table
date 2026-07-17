@@ -1,0 +1,14 @@
+CREATE TABLE MonthlyData AS
+SELECT 
+	strftime('%Y-%m', ordersAdj.new_order_date) Month, -- Using reformatted date to get just the month, differentiating by year
+	ROUND(SUM(order_items.sales), 2) AS MonthlySales, 
+	ROUND(SUM(order_items.profit), 2) AS MonthlyProfits,
+	100*ROUND(AVG(order_items.discount), 2) AS AverageDiscount, -- discount as a percentage. Larger number reads better.
+	SUM(order_items.quantity) MonthlySalesQuantity, 
+	SUM(products.category = 'Furniture') FurnitureSales, -- separating the number of sales in each category. 
+  SUM(products.category = 'Office Supplies') SuppliesSales,
+  SUM(products.category = 'Technology') TechSales
+FROM order_items 
+	JOIN ordersAdj ON ordersAdj.order_id = order_items.order_id -- order id and product id are common keys. 
+	JOIN products ON products.product_id = order_items.product_id
+GROUP BY Month -- grouped for monthly data
