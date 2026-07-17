@@ -1,0 +1,50 @@
+--code to adjust the dates of the 'orders' table by reformatting them into 'YYYY-mm-dd' - the standard method for analysis.
+
+ CREATE TABLE ordersAdj AS
+  
+WITH FormattedDates AS (SELECT
+  order_date,
+  printf('%04d-%02d-%02d', y, m, d) AS new_order_date -- notes have been added to FormattedDelivery. Same process, just replaced ship_date with order_date
+FROM (
+  SELECT
+    order_date,
+    CAST(substr(order_date, 1, p1 - 1) AS INTEGER) AS m,
+    CAST(substr(order_date, p1 + 1, p2 - 1) AS INTEGER) AS d,
+    CAST(substr(order_date, p1 + p2 + 1) AS INTEGER) AS y
+  FROM (
+    SELECT
+      order_date,
+      instr(order_date, '/') AS p1,
+      instr(substr(order_date, instr(order_date, '/') + 1), '/') AS p2
+    FROM orders
+  ))),
+  
+  FormattedDelivery AS (SELECT
+  ship_date,
+  printf('%04d-%02d-%02d', y, m, d) AS new_ship_date -- reformatting the date to have year first, then 2 digit month, then 2 digit day. 
+FROM (
+  SELECT
+    ship_date,
+    CAST(substr(ship_date, 1, p1 - 1) AS INTEGER) AS m, -- using the location of slashes to determine the value of months, days, and years. 
+    CAST(substr(ship_date, p1 + 1, p2 - 1) AS INTEGER) AS d,
+    CAST(substr(ship_date, p1 + p2 + 1) AS INTEGER) AS y
+  FROM (
+    SELECT
+      ship_date,
+      instr(ship_date, '/') AS p1, -- finding where the slashes are to be able to separate days, months and years
+      instr(substr(ship_date, instr(ship_date, '/') + 1), '/') AS p2
+    FROM orders
+  )))
+  
+  SELECT orders.order_id, -- simply reforming the orders table with the new dates in the correct format. We may now use more typical methods of date analysis. 
+	orders.ship_mode,
+	orders.ship_date,
+	orders.customer_id,
+	orders.order_date,
+	FormattedDates.new_order_date,
+	FormattedDelivery.new_ship_date
+  FROM orders 
+	JOIN FormattedDates
+	ON orders.order_date = FormattedDates.order_date
+		JOIN FormattedDelivery 
+		ON orders.ship_date = FormattedDelivery.ship_date
