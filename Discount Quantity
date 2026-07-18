@@ -5,8 +5,8 @@
 
 WITH DiscountStats AS (SELECT MonthlyData.*, 
 SUM(CASE WHEN order_items.discount > 0 THEN order_items.quantity ELSE 0 END) DiscountQuantity, -- how many items were sold with a discount?
-SUM(order_items.discount != 0) TransactionDiscountFrequency, -- how many orders included a discount?
-COUNT(ordersAdj.order_id) OrderCount -- how many orders were placed that month?
+COUNT(DISTINCT ordersAdj.order_id) OrderCount, -- how many orders were placed that month?
+COUNT(DISTINCT CASE WHEN order_items.discount > 0 THEN ordersAdj.order_id END) DiscountCount -- how many orders included a discount?
 FROM MonthlyData 
 	JOIN ordersAdj ON strftime('%Y-%m', ordersAdj.new_order_date) = MonthlyData.month -- ordersAdj must be joined to connect order_items by the order_id
 	JOIN order_items ON order_items.order_id = ordersAdj.order_id
@@ -14,19 +14,17 @@ GROUP BY MonthlyData.month)
 
 SELECT *, 
 ROUND(DiscountQuantity*100.0 / MonthlySalesQuantity, 2) QuantityDiscountRatio, -- what percentage of items sold had a discount?
-ROUND(TransactionDiscountFrequency * 100.0 / OrderCount , 2) TransactionDiscountRatio -- what percentage of orders used a discount
+ROUND(DiscountCount * 100.0 / OrderCount , 2) TransactionDiscountRatio -- what percentage of orders used a discount
 FROM DiscountStats
-GROUP BY Month
 ORDER BY QuantityDiscountRatio, DiscountQuantity
 
 
 
 ANALYSIS:
 
-We see that TransactionDiscountRatio and QuantityDiscountRatio are almost consistently in line with each other, so no further differentiation necessary.
-What is interesting, however, is that we generally see that TransactionDiscountRatio > QuantityDiscountRatio by a small margin (typically within 10% of QuantityDiscountRatio). 
-This is important because it shows that the non-discounted items are still purchased at higher frequency. 
-A follow-up question may be whether this is because of certain items being discounted more or less than others, such as technology.
+We see that TransactionDiscountRatio is typically around 10 points higher than QuantityDiscountRatio, showcasing that discounted items are typically bought at lower frequency than those of normal pricing.
+This is important because it gives insight into what sorts of items may be purchased and may eventually explain the importance of discounts in this superstore.  
+A follow-up question may be whether this is because of certain categories of item being discounted more than others, such as technology and furniture
 
 -- We may investigate more into this by considering what items get discounted more often. Utilising this will give us insight into the history of what items get sold. 
 -- Begin by creating a new table with monthly data on the ratio of discounted to non discounted orders for all categories. 
@@ -71,4 +69,4 @@ Following Furniture is Tech at 54.66% and Supplies at 47.83%, showing that both 
 We recall from DiscountStats that the total average discount rate in a month is between 10% and 20%. We shall use this to leverage an investigation into whether profits are benefitted or hindered by the discount amount, looking at the entire range of products and the individual categories.
 The goal is to determine discounting strategies and whether they are generally beneficial or a hindrance to company profits.
 
--- It is worth noting that this analysis shall ignores the concept of customer order consistency and the word-of-mouth marketing that could arise as a result. The inclusion of this will value the amount purchased far higher, even if profits are slightly more minimal. 
+-- It is worth noting that this analysis shall ignores the concept of customer order consistency and the word-of-mouth marketing that could arise as a result. The inclusion of this will value the quantity of items much higher, even if profits are more marginal, because it acts as an indirect investment.
