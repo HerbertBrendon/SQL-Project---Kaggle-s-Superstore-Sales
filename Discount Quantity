@@ -1,0 +1,30 @@
+-- understanding the effect of discounts on sales first requires building an understanding of how often discounts are used. 
+-- by computing the ratio of discounts in every month, we can develop an idea of when they're used more and how they affect the income and profit. 
+-- future tasks with this data outside of SQL will include plotting graphs of sales and profit against average discounts and discount ratios in order to establish whether a correlation exists. 
+
+
+WITH DiscountStats AS (SELECT MonthlyData.*, 
+SUM(CASE WHEN order_items.discount > 0 THEN order_items.quantity ELSE 0 END) DiscountQuantity, -- how many items were sold with a discount?
+SUM(order_items.discount != 0) TransactionDiscountFrequency, -- how many orders included a discount?
+COUNT(ordersAdj.order_id) OrderCount -- how many orders were placed that month?
+FROM MonthlyData 
+	JOIN ordersAdj ON strftime('%Y-%m', ordersAdj.new_order_date) = MonthlyData.month -- ordersAdj must be joined to connect order_items by the order_id
+	JOIN order_items ON order_items.order_id = ordersAdj.order_id
+GROUP BY MonthlyData.month)
+
+SELECT *, 
+ROUND(DiscountQuantity*100.0 / MonthlySalesQuantity, 2) QuantityDiscountRatio, -- what percentage of items sold had a discount?
+ROUND(TransactionDiscountFrequency * 100.0 / OrderCount , 2) TransactionDiscountRatio -- what percentage of orders used a discount
+FROM DiscountStats
+GROUP BY Month
+ORDER BY QuantityDiscountRatio, DiscountQuantity
+
+
+
+ANALYSIS:
+
+We see that TransactionDiscountRatio and QuantityDiscountRatio are almost consistently in line with each other, so no further differentiation necessary.
+What is interesting, however, is that we generally see that TransactionDiscountRatio > QuantityDiscountRatio by a small margin (typically within 10%). 
+This is important because it shows that the non-discounted items are still purchased at higher frequency. 
+
+-- We may investigate more into this by considering what items get discounted more often. Utilising this will give us insight into the history of what items get sold. 
