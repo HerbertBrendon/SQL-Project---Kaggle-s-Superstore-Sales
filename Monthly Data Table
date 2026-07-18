@@ -1,8 +1,16 @@
 CREATE TABLE MonthlyData AS
 SELECT 
 	strftime('%Y-%m', ordersAdj.new_order_date) Month, -- using reformatted date from ordersAdj
-	ROUND(SUM(order_items.sales), 2) AS MonthlySales, -- order prices are originally to more than 2sf
-	ROUND(SUM(order_items.profit), 2) AS MonthlyProfits, -- setting to 2sf makes it more instantly understandable
+	ROUND(SUM(order_items.sales), 2) AS MonthlySales,
+    ROUND(SUM(order_items.sales * (products.category = 'Technology')), 2) AS TechSales,
+    ROUND(SUM(order_items.sales * (products.category = 'Office Supplies')), 2) AS SuppliesSales,
+    ROUND(SUM(order_items.sales * (products.category = 'Furniture')), 2) AS FurnitureSales,
+    
+    ROUND(SUM(order_items.profit), 2) AS MonthlyProfits,
+    ROUND(SUM(order_items.profit * (products.category = 'Technology')), 2) AS TechProfits, -- changes were made via Gemini to increase volume of workflow
+    ROUND(SUM(order_items.profit * (products.category = 'Office Supplies')), 2) AS SuppliesProfits,
+    ROUND(SUM(order_items.profit * (products.category = 'Furniture')), 2) AS FurnitureProfits,
+
 	100*ROUND(AVG(order_items.discount), 2) AS AverageDiscount, -- percentage discount reads stronger than a decimal discount
 	SUM(order_items.quantity) MonthlySalesQuantity,
 	SUM(CASE WHEN products.category = 'Furniture' THEN order_items.quantity ELSE 0 END) FurnitureSales,
