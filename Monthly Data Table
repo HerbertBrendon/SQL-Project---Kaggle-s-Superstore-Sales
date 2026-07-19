@@ -11,11 +11,11 @@ SELECT
     ROUND(SUM(order_items.profit * (products.category = 'Office Supplies')), 2) AS SuppliesProfits,
     ROUND(SUM(order_items.profit * (products.category = 'Furniture')), 2) AS FurnitureProfits,
 
-	100*ROUND(AVG(order_items.discount), 2) AS AverageDiscount, -- percentage discount reads stronger than a decimal discount
+	ROUND(100.0*SUM(order_items.discount * order_items.quantity) / SUM(order_items.quantity), 2) AS AverageDiscount, -- percentage discount reads stronger than a decimal discount
 	SUM(order_items.quantity) MonthlySalesQuantity,
-	SUM(CASE WHEN products.category = 'Furniture' THEN order_items.quantity ELSE 0 END) FurnitureSales,
-  SUM(CASE WHEN products.category = 'Office Supplies' THEN order_items.quantity ELSE 0 END) SuppliesSales,
-  SUM(CASE WHEN products.category = 'Technology' THEN order_items.quantity ELSE 0 END) TechSales
+	SUM(CASE WHEN products.category = 'Furniture' THEN order_items.quantity ELSE 0 END) FurnitureQuantity,
+  SUM(CASE WHEN products.category = 'Office Supplies' THEN order_items.quantity ELSE 0 END) SuppliesQuantity,
+  SUM(CASE WHEN products.category = 'Technology' THEN order_items.quantity ELSE 0 END) TechQuantity
 FROM order_items 
 	JOIN ordersAdj ON ordersAdj.order_id = order_items.order_id -- order_id is common key
 	JOIN products ON products.product_id = order_items.product_id -- product_id is common key
