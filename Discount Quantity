@@ -74,20 +74,20 @@ The goal is to determine discounting strategies and whether they are generally b
 SELECT 
 MonthlyData.Month,
 MonthlyData.MonthlyProfits,
-MonthlyData.AverageDiscount,
-ROUND(100.0*SUM(order_items.quantity * (order_items.discount != 0)) / MonthlySalesQuantity, 2) AS TotalDiscountRate,
+MonthlyData.AverageDiscount, -- what is the average discount of an item, including 0 for those with no discount?
+ROUND(100.0*SUM(order_items.quantity * (order_items.discount != 0)) / MonthlySalesQuantity, 2) AS TotalDiscountRate, -- what percentage of items bought had a discount?
 
-DiscountOrdersData.FurnitureDiscountRate,
-MonthlyData.FurnitureProfits,
-MonthlyData.FurnitureSales,
-DiscountOrdersData.SuppliesDiscountRate,
+DiscountOrdersData.FurnitureDiscountRate, -- how many furniture items were sold with a discount?
+MonthlyData.FurnitureProfits, -- just the profits from furniture
+MonthlyData.FurnitureSales, -- just the sales from furniture
+DiscountOrdersData.SuppliesDiscountRate, -- how many supplies items were sold with a discount?
 MonthlyData.SuppliesProfits,
 MonthlyData.SuppliesSales,
-DiscountOrdersData.TechDiscountRate,
+DiscountOrdersData.TechDiscountRate, -- how many technology items were sold with a discount?
 MonthlyData.TechProfits,
 MonthlyData.TechSales,
-ROW_NUMBER() OVER (ORDER BY MonthlyProfits DESC) ProfitsRank,
-ROW_NUMBER() OVER (ORDER BY ROUND(100.0*SUM(order_items.quantity * (order_items.discount != 0)) / MonthlySalesQuantity, 2) DESC) DiscountsRank
+ROW_NUMBER() OVER (ORDER BY MonthlyProfits DESC) ProfitsRank, -- what is the ranking of all months by their profitability?
+ROW_NUMBER() OVER (ORDER BY ROUND(100.0*SUM(order_items.quantity * (order_items.discount != 0)) / MonthlySalesQuantity, 2) DESC) DiscountsRank -- what is the ranking of all months by the probability of a discount being used? 
 
 
 FROM MonthlyData
@@ -114,15 +114,17 @@ What we find is that there is a correlation between profit and discount.
 Furthermore, it was never the case that that the least profitable of a month had both lowest TotalDiscountRate.
 
 What is interesting about the month is that the correlation of TotalDiscountRate never lied upon one of the important months such as January, September, November, or December.
-This may imply that during average months, discounts hinder profits, however they leave less of an impact on valuable months. 
-The above implication is not complete, though. We cannot truly infer with complete confidence on a data size of 4 for each month. 
+These implications are not complete, though. We cannot truly infer with complete confidence on a data size of 4 for each month.
+An explanation may be that during average months, discounts hinder profits, however they leave less of an impact on valuable months where people have a necessity to purchase goods.  
+
 On top of that, the month of January has known outliers:
 In 2015-01, it was a losing month of -3211.81, mostly as a result of FurnitureProfits being -2945.00 on its own, even though the FurnitureDiscountRate wasn't particularly high.
 - This may be a result of the FurnitureSales being far higher for this month at 11932.16, whereas the average of other Januarys is around 7000. 
 In 2017-01, it was the most profitable month of +7029.06, as a result of insane outliers in SuppliesSales (4x larger than next highest year) and TechSales (3x higher than next highest year).
 - These discount rates were around 50%, leaving 2017's January as the highest SuppliesDiscountRate and 3rd highest TechDiscountRate.
-- Reasoning for vast differences for 2017 were likely societal rather than a clear business decision, following off the peak of 2016, with 2016-12 and 2016-10 being the respective 1st and 2nd highest profits. 
+- An explanation for the vast difference in 2017 is that the cause is societal rather than a clear business decision, following off the peak of 2016, with 2016-12 and 2016-10 being the respective 1st and 2nd highest profits. 
 
 Further graphical analysis should be had over the interests of profits for each individual category due to the optimisation of time. 
+Furthermore, correlation coefficients for some of the possible suggestive patterns shall be computed in a more optimal environment such as Excel. 
 
 -- For a new question surrounding first-time customers, move onto 'First Customers'
