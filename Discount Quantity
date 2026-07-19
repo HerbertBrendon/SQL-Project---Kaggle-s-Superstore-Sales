@@ -66,7 +66,7 @@ ANALYSIS:
 
 What is observed is that AvgDiscountFurniture is the highest at 58.61%, showing that furniture is most commonly bought at a discounted price. 
 Following Furniture is Tech at 54.66% and Supplies at 47.83%, showing that both Technology and Furniture are more often bought at a discounted price than not. 
-We recall from DiscountStats that the total average discount rate in a month is between 10% and 20%. We shall use this to leverage an investigation into whether profits are benefitted or hindered by the discount amount, looking at the entire range of products and the individual categories.
+We recall from DiscountStats that the total average discount in a month is between 9.24% and 19.01%. We shall use this to leverage an investigation into whether profits are benefitted or hindered by the discount amount, looking at the entire range of products and the individual categories.
 The goal is to determine discounting strategies and whether they are generally beneficial or a hindrance to company profits.
 
 -- To ensure completeness of analysis, we shall also include sales. While profits are purely defined by margins, it is worth considering whether the price of bringing a customer to the store is worth either reducing profits or taking a loss. 
