@@ -109,3 +109,20 @@ This is an incomplete picture, however, because we are still evaluating each mon
 
 We order the above data using "Order BY substr(MonthlyData.Month, 6, 2)"
 
+What we find is that there is a correlation between profit and discount.
+5 of the 12 months' two least profitable years also have the two highest TotalDiscountRates. Those months are February, March, April, June, and August.
+Furthermore, it was never the case that that the least profitable of a month had both lowest TotalDiscountRate.
+
+What is interesting about the month is that the correlation of TotalDiscountRate never lied upon one of the important months such as January, September, November, or December.
+This may imply that during average months, discounts hinder profits, however they leave less of an impact on valuable months. 
+The above implication is not complete, though. We cannot truly infer with complete confidence on a data size of 4 for each month. 
+On top of that, the month of January has known outliers:
+In 2015-01, it was a losing month of -3211.81, mostly as a result of FurnitureProfits being -2945.00 on its own, even though the FurnitureDiscountRate wasn't particularly high.
+- This may be a result of the FurnitureSales being far higher for this month at 11932.16, whereas the average of other Januarys is around 7000. 
+In 2017-01, it was the most profitable month of +7029.06, as a result of insane outliers in SuppliesSales (4x larger than next highest year) and TechSales (3x higher than next highest year).
+- These discount rates were around 50%, leaving 2017's January as the highest SuppliesDiscountRate and 3rd highest TechDiscountRate.
+- Reasoning for vast differences for 2017 were likely societal rather than a clear business decision, following off the peak of 2016, with 2016-12 and 2016-10 being the respective 1st and 2nd highest profits. 
+
+Further graphical analysis should be had over the interests of profits for each individual category due to the optimisation of time. 
+
+-- For a new question surrounding first-time customers, move onto 'First Customers'
