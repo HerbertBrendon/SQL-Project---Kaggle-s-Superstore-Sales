@@ -20,3 +20,18 @@ FROM order_items
 	JOIN ordersAdj ON ordersAdj.order_id = order_items.order_id -- order_id is common key
 	JOIN products ON products.product_id = order_items.product_id -- product_id is common key
 GROUP BY Month -- summing for monthly data
+
+
+ANALYSIS: 
+
+We see that the months are not equal.
+MonthlySales range between 12036.17 and 120876.69, excluding the outlier in 2014-02 at just 4632.68 in sales. 
+Ordering by MonthlySales, we find that the lowest 7 months for sales were all January or February, with 2017-01 as an outlier.
+Similarly, we see that every instance of September, November or December were in the top 13 MonthlySales, with 2017-10 as an exception.
+As a result, it is not fair to compare all months on their own. Further analysis must investigate in a single month or in a comparable group of months. 
+
+While MonthlyProfits is still slightly skewed towards the later months, the correlation is a lot less blatant. 
+There are two negative months in 2015-01 (-3211.81) and 2014-07 (-751.33), with all other MonthlyProfits between +901.92 and +18689.43
+This signals that further analysis should involve the inspection of MonthlyProfits and any causality which results in marginal or negative months. 
+
+-- Next steps of analysis can be found in 'Discount Quantity'.
