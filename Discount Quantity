@@ -69,4 +69,43 @@ Following Furniture is Tech at 54.66% and Supplies at 47.83%, showing that both 
 We recall from DiscountStats that the total average discount rate in a month is between 10% and 20%. We shall use this to leverage an investigation into whether profits are benefitted or hindered by the discount amount, looking at the entire range of products and the individual categories.
 The goal is to determine discounting strategies and whether they are generally beneficial or a hindrance to company profits.
 
--- It is worth noting that this analysis shall ignores the concept of customer order consistency and the word-of-mouth marketing that could arise as a result. The inclusion of this will value the quantity of items much higher, even if profits are more marginal, because it acts as an indirect investment.
+-- To ensure completeness of analysis, we shall also include sales. While profits are purely defined by margins, it is worth considering whether the price of bringing a customer to the store is worth either reducing profits or taking a loss. 
+
+SELECT 
+MonthlyData.Month,
+MonthlyData.MonthlyProfits,
+MonthlyData.AverageDiscount,
+ROUND(100.0*SUM(order_items.quantity * (order_items.discount != 0)) / MonthlySalesQuantity, 2) AS TotalDiscountRate,
+
+DiscountOrdersData.FurnitureDiscountRate,
+MonthlyData.FurnitureProfits,
+MonthlyData.FurnitureSales,
+DiscountOrdersData.SuppliesDiscountRate,
+MonthlyData.SuppliesProfits,
+MonthlyData.SuppliesSales,
+DiscountOrdersData.TechDiscountRate,
+MonthlyData.TechProfits,
+MonthlyData.TechSales,
+ROW_NUMBER() OVER (ORDER BY MonthlyProfits DESC) ProfitsRank,
+ROW_NUMBER() OVER (ORDER BY ROUND(100.0*SUM(order_items.quantity * (order_items.discount != 0)) / MonthlySalesQuantity, 2) DESC) DiscountsRank
+
+
+FROM MonthlyData
+JOIN ordersAdj ON MonthlyData.Month = strftime('%Y-%m', ordersAdj.new_order_date)
+JOIN order_items ON ordersAdj.order_id = order_items.order_id
+JOIN DiscountOrdersData ON MonthlyData.Month = DiscountOrdersData.Month
+
+GROUP BY MonthlyData.Month
+
+
+ANALYSIS: 
+
+We observe the profits relative to the average discount rate. 
+It appears that the lower and upper ends of MonthlyProfit are skewed with respect to the TotalDiscount Rate. 
+6 of the 8 most profitable months have a lower half DiscountRank, whereas 6 of the 7 least profitable months have an upper half DiscountRank. 
+While middle data is messier, the understanding is clear - discounts are directly correlated with profits. 
+
+This is an incomplete picture, however, because we are still evaluating each month on its own. When grouping by the month, we may be able to understand more about its relation. 
+
+We order the above data using "Order BY substr(MonthlyData.Month, 6, 2)"
+
