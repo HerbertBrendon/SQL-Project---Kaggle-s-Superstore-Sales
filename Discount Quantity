@@ -109,12 +109,13 @@ This is an incomplete picture, however, because we are still evaluating each mon
 
 We order the above data using "Order BY substr(MonthlyData.Month, 6, 2)"
 
-What we find is that there is a correlation between profit and discount.
+What we find is that there is a possible correlation between profit and discount.
+These implications are not complete, though. We cannot truly infer with complete confidence on a data size of 4 for each month.
+
 5 of the 12 months' two least profitable years also have the two highest TotalDiscountRates. Those months are February, March, April, June, and August.
 Furthermore, it was never the case that that the least profitable of a month had both lowest TotalDiscountRate.
 
 What is interesting about the month is that the correlation of TotalDiscountRate never lied upon one of the important months such as January, September, November, or December.
-These implications are not complete, though. We cannot truly infer with complete confidence on a data size of 4 for each month.
 An explanation may be that during average months, discounts hinder profits, however they leave less of an impact on valuable months where people have a necessity to purchase goods.  
 
 On top of that, the month of January has known outliers:
