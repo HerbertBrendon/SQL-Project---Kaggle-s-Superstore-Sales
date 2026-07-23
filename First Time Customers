@@ -1,0 +1,210 @@
+We shall now investigate the details surrounding first-time customers.
+The objective is to determine what first-time customers value, what brings them into the superstore, and what keeps them here.
+NOTE: This data doesn't necessarily confirm that the customer is actually a first time buyer, since the superstore may have history prior to 2014 when this data is recorded. 
+ -- For this work, we shall assume this is not an issue and that all customers are either true first-time buyers and/or the superstore opened in 2014. 
+
+-- To collect first time customers, we may simply use a ROW_NUMBER window function over each customer_id:
+
+WITH CustomerOrderNumbering AS
+(SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY new_order_date) AS nums
+FROM ordersAdj
+)
+
+-- We may now use this as the basis for all future work. First-time customers have nums = 1. If they return, they have nums = 2
+-- Let's see how many first-time customers there are, and how often a first-time customer will return to the store at any point in time
+
+SELECT
+SUM(nums = 1) FirstBuyers, 
+SUM(nums = 2) BuyerReturning, 
+ROUND(SUM(nums = 2)*1.0 / SUM(nums = 1), 2) ReturningPercentage
+FROM CustomerOrderNumbering
+
+
+ANALYSIS:
+
+We find 793 FirstBuyers and 781 BuyersReturning, resulting in a 98.49% ReturningPercentage.
+Most customers will return to the store, which is understandable considering the fact this is a superstore which likely has a large presence in the local area.
+What actually gets the interest of first-time customers, though? Is there a specific category of item or specific offer that drives them here?
+
+WITH CustomerOrderNumbering AS
+(SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY new_order_date) AS nums
+FROM ordersAdj
+),
+
+FirstCustomers AS 
+(SELECT *
+FROM CustomerOrderNumbering
+WHERE nums = 1)   -- In future queries, until stated otherwise, we shall assume CustomerOrderNumbering and FirstCustomers are the ctes. 
+
+SELECT 
+(SELECT ROUND(SUM(order_items.discount > 0) * 100.0 / COUNT(*), 2) 
+FROM FirstCustomers JOIN order_items ON FirstCustomers.order_id = order_items.order_id) DiscountMotivatorOdds, -- from FirstCustomers
+(SELECT ROUND(SUM(discount > 0) * 100.0 / COUNT(*), 2) FROM order_items) AS StandardDiscountOdds, -- from all data. 
+-- Same Day
+    ROUND(SUM(FirstCustomers.ship_mode = 'Same Day') * 100.0 / COUNT(*), 2) AS SameDayMotivatorOdds,
+    (SELECT ROUND(SUM(ordersAdj.ship_mode = 'Same Day') * 100.0 / COUNT(*), 2) FROM ordersAdj) AS StandardSameDayOdds,
+
+    -- First Class
+    ROUND(SUM(FirstCustomers.ship_mode = 'First Class') * 100.0 / COUNT(*), 2) AS FirstClassMotivatorOdds,
+    (SELECT ROUND(SUM(ordersAdj.ship_mode = 'First Class') * 100.0 / COUNT(*), 2) FROM ordersAdj) AS StandardFirstClassOdds,
+
+    -- Second Class
+    ROUND(SUM(FirstCustomers.ship_mode = 'Second Class') * 100.0 / COUNT(*), 2) AS SecondClassMotivatorOdds,
+    (SELECT ROUND(SUM(ordersAdj.ship_mode = 'Second Class') * 100.0 / COUNT(*), 2) FROM ordersAdj) AS StandardSecondClassOdds,
+
+    -- Standard Class
+    ROUND(SUM(FirstCustomers.ship_mode = 'Standard Class') * 100.0 / COUNT(*), 2) AS StandardClassMotivatorOdds,
+    (SELECT ROUND(SUM(ordersAdj.ship_mode = 'Standard Class') * 100.0 / COUNT(*), 2) FROM ordersAdj) AS StandardStandardClassOdds
+FROM FirstCustomers
+
+
+ANALYSIS: 
+
+These overarching data points show roughly no correlation between first-time buyers and discounts (excluding the quantity of purchase) or delivery methods. 
+Discounts are almost exactly equal, at 51.95% for first-time buyers vs 51.99% for all buyers, first included. 
+When we replace FirstCustomers with second-time customers (those with nums = 2), we find that the discounts increase up to 54.46%, decreasing to 50.53% for third-time customers.
+There is a large enough size of data (781 second-time customers) to make a claim that second-time customers are, to an extent, driven by discounts.
+
+Same day delivery is slightly lower for first customers, with 4.67% vs 5.27, and same goes for first class with 14.88% vs 15.71%.
+This could suggest (but cannot show directly due to the small sample size) that the higher delivery packages are still used commonly, however their existence does not serve a strong motivating factor for new customers.
+
+
+-- We may now investigate what customers buy in their first order. 
+
+SELECT
+SUM(order_items.quantity * (products.category = 'Furniture')) FurniturePurchases, -- quantity of items first time buyers which is in the furniture category
+SUM(order_items.quantity * (products.category = 'Technology')) TechnologyPurchases,
+SUM(order_items.quantity * (products.category = 'Office Supplies')) SuppliesPurchases
+FROM FirstCustomers 
+JOIN order_items ON FirstCustomers.order_id = order_items.order_id
+JOIN products ON order_items.product_id = products.product_id
+
+
+
+ANALYSIS: 
+
+The above query takes all orders from first-time buyers and considers the quantity of the items they have bought. 
+We find that Furniture:Technology:Supplies = 1365:1209:3849, or percentages for each of 21.25%, 18.82%, and 59.93%.
+We may compare this to standard purchase records of all sales by removing FirstCustomers from the joined table.
+We see that this has a ratio 8379:7249:23518, or percentages for each of 21.40%, 18.52%, and 60.08%.
+
+It seems that we can make the conclusion that first-time customers have no real difference compared to a random customer. 
+As a result, we conclude this research by making the claim that all marketing to attract repeat customers also works for attracting new customers. 
+
+As a final question, we shall investigate the probability of a customer returning to purchase something the next month. 
+
+WITH CustomerOrderNumbering AS
+(SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY new_order_date) AS nums
+FROM ordersAdj
+),
+
+FirstCustomers AS -- nums = 1 shows first ranking and first order.
+(SELECT *
+FROM CustomerOrderNumbering
+WHERE nums = 1),
+
+SecondCustomers AS -- 
+(SELECT * 
+FROM CustomerOrderNumbering
+WHERE nums = 2)
+
+SELECT COUNT(*)
+FROM FirstCustomers LEFT JOIN SecondCustomers
+ON FirstCustomers.customer_id = SecondCustomers.customer_id -- customer_id is shared, order_id is not
+WHERE (strftime('%Y', SecondCustomers.new_order_date) - strftime('%Y', FirstCustomers.new_order_date)) * 12 +
+    (strftime('%m', SecondCustomers.new_order_date) - strftime('%m', FirstCustomers.new_order_date)) BETWEEN 0 AND 1 -- choose for when second order is in the following month
+
+
+ANALYSIS: 
+
+Despite having 793 FirstCustomers and 781 SecondCustomers, as stated line 25, there are only 105 customers who, at any given month, have returned that month or next.
+This is 13.24% of all buyers.
+
+-- Furthermore, let's consider ThirdCustomers too (those who have shopped at least 3 times)
+
+WITH CustomerOrderNumbering AS
+(SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY new_order_date) AS nums
+FROM ordersAdj
+),
+
+FirstCustomers AS 
+(SELECT *
+FROM CustomerOrderNumbering
+WHERE nums = 1),
+
+SecondCustomers AS 
+(SELECT * 
+FROM CustomerOrderNumbering
+WHERE nums = 2),
+
+ThirdCustomers AS 
+(SELECT * 
+FROM CustomerOrderNumbering
+WHERE nums = 3)
+
+SELECT 
+(SELECT COUNT(*) FROM FirstCustomers) FirstCustomerTotal,
+(SELECT COUNT(*) FROM SecondCustomers) SecondCustomerTotal,
+(SELECT COUNT(*) FROM ThirdCustomers) ThirdCustomerTotal,
+COUNT(*)
+	
+FROM FirstCustomers LEFT JOIN SecondCustomers 
+ON FirstCustomers.customer_id = SecondCustomers.customer_id
+
+LEFT JOIN ThirdCustomers
+ON FirstCustomers.customer_id = ThirdCustomers.customer_id
+
+WHERE (strftime('%Y', SecondCustomers.new_order_date) - strftime('%Y', FirstCustomers.new_order_date)) * 12 +
+    (strftime('%m', SecondCustomers.new_order_date) - strftime('%m', FirstCustomers.new_order_date)) BETWEEN 0 AND 1 -- second time less than 2 months since first
+AND (strftime('%Y', ThirdCustomers.new_order_date) - strftime('%Y', SecondCustomers.new_order_date)) * 12 +
+    (strftime('%m', ThirdCustomers.new_order_date) - strftime('%m', SecondCustomers.new_order_date)) BETWEEN 0 AND 1 -- third time less than 2 months since second
+
+
+ANALYSIS:
+
+There are 747 ThirdCustomers, down from 793 First and 781 Second.
+The amount of people who also went to shop a third time soon after the first two was only 14.
+This is 13.33% of those who appeared in the 105 prior who soon shopped a second time, and 1.77% of all customers. 
+
+The drastic fall-off shares a lot about the issues with the superstore's current system with optimising profits. 
+Currently, there is little incentive for new shoppers compared to already frequent shoppers, and the odds of a shopper coming back soon is very unlikely.
+
+It is the advice of Jon Taffer, Ammerican entrepreneur and tv host, that since the price of marketing to get a new customer is so expensive, efforts should be often redirected towards keeping the customer.
+His personal statistics showed that a first-time customer returning was only 
+There is differences between the markets. As stated earlier, a superstore will carry more weight and a higher chance of return customers than a restaurant with higher competition.
+However, we can instead focus on the ability to have a customer return frequently rather than return at all. 
+
+Using the information from line 65, we see that second-time customers are somewhat motivated by discounts. This is not acted upon enough, though.
+Further discount strategies to newer customers to help bring more into the business and have them come back will positively benefit the superstore.
+More frequent customers will correlate to a higher quantity of stock they can move.
+It would also mean a more loyal customer-base that may present themselves outside the loss-leading product discounts. 
+
+
+To conclude this section, we simply check the most frequent customer:
+
+SELECT COUNT(order_id), customer_id -- name ommitted from this list to manage issues with someone having several entriesn in the customers table as a result of several addresses connected to the same ID.
+. 
+FROM ordersAdj
+GROUP BY customer_id
+ORDER BY COUNT(order_id) DESC
+LIMIT 1
+
+-- The most frequent customer is EP-13915, who is Emily Phan, with 17 orders.
+-- We can look at the amount of customers with all counts of order, inclusive of those with counts higher, with the below query:
+
+WITH CustomerOrderNumbering AS
+(SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY new_order_date) AS nums
+FROM ordersAdj
+)
+
+SELECT *, COUNT(order_id)
+FROM CustomerOrderNumbering
+GROUP BY nums
+
+
+-- The only customer above 13 orders is Emily Phan. 
+-- There are 8 customers with at least 13 orders, 26 customers with at least 12 orders, and 49 customers with at least 11 orders. 
+
+
+
+
